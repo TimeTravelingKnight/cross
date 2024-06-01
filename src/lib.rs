@@ -24,11 +24,118 @@ const palettesize:usize =0x20;
 static beasticonlocs:Mutex<[u32;2]>=Mutex::new([0,0]);
 static beastchipIcon:Mutex<[u32;2]>=Mutex::new([0,0]);
 static beastpallocs:Mutex<[u32;2]>=Mutex::new([0,0]);
+//static emotionpointers:Mutex<[u32;2]>=Mutex::new([0,0]);
+//static gregaremotionalpointers:
 const crosspoint:[u8;5]=[0x8,0x18,0x28,0x38,0x48];
 const indexinRam:[u8;5]=[0xF,0x10,0x11,0x12,0x13];
 const pixelyo:[usize;5]=[0,0x46,0x8C,0xD2,0x118];
 const pixely0ForSelected:[usize;5]=[0x15e,0x1a4, 0x1ea,0x230, 0x15e];
 const pixelx0ForSelected:[usize;5]=[0,0,0,0,0x14a];
+const CrossMax:u8=10;
+
+
+fn winDowCurrCount()->u8 {
+    let gbamemorymap= unsafe{*(((  *bn6fun::GLOBALGBAREG.get().unwrap() as u64)+0x48) as *const u64)} as *mut u8;
+    let mut differentwindowcount=0;
+    let mut newCount=0;
+    let crossTest=unsafe{* ((gbamemorymap.wrapping_add( 0x46e64)) as *mut u32)}  ;
+    let crossTest = unsafe{* ((gbamemorymap.wrapping_add(crossTest as usize)) as *mut u32)};
+     while newCount<CrossMax {
+        if !testingCross(crossTest, newCount)
+        {
+           if !testForExtremeTired(newCount) {
+               
+               differentwindowcount+=1;
+               
+           }
+        }
+        newCount += 1;
+    }
+    differentwindowcount  
+}
+fn initForFirstWindow() {
+    let regs=&gba.get().unwrap().registers;
+    let gbamemorymap= unsafe{*(((  *bn6fun::GLOBALGBAREG.get().unwrap() as u64)+0x48) as *const u64)} as *mut u8;
+    let megaman=unsafe{ *(regs[5] as *mut u32) };
+    unsafe{*(gbamemorymap as *mut u8).wrapping_add( (megaman+0x1B) as usize)=2;}
+    let crossindexes= (gbamemorymap as *mut u8).wrapping_add(megaman as usize+0x50);
+          
+        
+      unsafe{   *crossindexes.wrapping_add(2)=*crossindexes.wrapping_add(0)};
+        
+
+}
+fn goSignedDirectionForCross(sign :i8) {
+    let regs=&gba.get().unwrap().registers;
+    let gbamemorymap= unsafe{*(((  *bn6fun::GLOBALGBAREG.get().unwrap() as u64)+0x48) as *const u64)} as *mut u8;
+    let megaman=unsafe{ *(regs[5] as *mut u32) };
+    let crossindexes= (gbamemorymap as *mut u8).wrapping_add(megaman as usize+0x50);
+    let mut windowCount=0;
+    let mut currCount= unsafe{*(crossindexes.wrapping_add(2))};
+    let crossTest=unsafe{* ((gbamemorymap.wrapping_add( 0x46e64)) as *mut u32)}  ;
+    let crossTest = unsafe{* ((gbamemorymap.wrapping_add(crossTest as usize)) as *mut u32)};
+    let mut crossindex=windowCount;
+    while windowCount<3{
+        if !testingCross(crossTest, currCount)
+        {
+           if !testForExtremeTired(currCount) {
+            if sign >0  {
+                crossindex=2+windowCount;
+            }
+            else {
+                crossindex =2-windowCount;
+            }
+           
+              unsafe{*(crossindexes.wrapping_add(crossindex))=currCount;}
+              
+            
+               windowCount+=1;
+           }
+        }
+           if (sign>0){
+           currCount = (currCount +1)%10 ;
+           }
+           else {
+            if currCount!=0 {
+            currCount = currCount -1;
+            }
+            else {
+                currCount=9;
+            }
+           }
+       
+
+}
+}
+
+
+fn scroll() {
+    let regs=&gba.get().unwrap().registers;
+    let gbamemorymap= unsafe{*(((  *bn6fun::GLOBALGBAREG.get().unwrap() as u64)+0x48) as *const u64)} as *mut u8;
+ 
+        let choice= unsafe{*(regs[4] as *mut u32)} as u8; 
+    if winDowCurrCount()>5 {
+        let regs=&gba.get().unwrap().registers;
+        let gbamemorymap= unsafe{*(((  *bn6fun::GLOBALGBAREG.get().unwrap() as u64)+0x48) as *const u64)} as *mut u8;
+        let megaman=unsafe{ *(regs[5] as *mut u32) };
+        let crossindexes= (gbamemorymap as *mut u8).wrapping_add(megaman as usize+0x50);
+        let nextCross=read_u8!(crossindexes,choice);
+       
+        write_u8!(crossindexes,2,nextCross);
+        goSignedDirectionForCross(-1);
+        goSignedDirectionForCross(1);
+
+    }
+    
+    else {
+     
+        let offset= (unsafe{*(regs[5] as *mut u32)}+0x1b) as usize;
+       
+        write_u8!(gbamemorymap ,offset,choice);
+        
+    }
+
+} 
 
 fn testingCross(crossTest :u32,currCount:u8 )->bool {
    let val= 1<<currCount;
@@ -68,17 +175,27 @@ fn CrossWindowAddCross(gbareg:*mut u64)->c_int{
                
                let megaman=unsafe{ *(regs[5] as *mut u32) };
               unsafe{*(gbamemorymap as *mut u8).wrapping_add( (megaman+crossindex) as usize)=currCount;}
-              let crossSelected: u32=0x55+currCount as u32; //will need to change this later
+              let crossSelected: u32=0x55+windowCount as u32; //will need to change this later
               unsafe{ *(gbamemorymap as *mut u8).wrapping_add((megaman+crossSelected ) as usize )=0;}
                windowCount+=1;
            }
         }
         currCount += 1;
     }    
+   
+   
+    if  winDowCurrCount()>5 {
+        
+        initForFirstWindow();
+        goSignedDirectionForCross(-1);
+        goSignedDirectionForCross(1);
+    }
     unsafe { * (regs[0] as *mut u32) =windowCount;}
-    return oldr14 as c_int;
-
+    oldr14 as c_int
+    
 }
+
+
 
 fn aftersetCross(){
     let mut count= unsafe{*(0x143d34a80 as *mut u8) };
@@ -193,6 +310,11 @@ fn setfaces(){
                 }).join(); 
 
             curraddress+=palettesize as u64;
+
+            //Gregarfacepointers
+  //          for i in 0..19 {
+
+    //        }
            break;
             
          
@@ -463,6 +585,8 @@ pub extern "C" fn luaopen_make(_:c_void)-> c_int{
      {
         *(0x1423bd7dd as *mut u8)  = 0xC3;   
      }
+     hooks::GM_HOOK!(0x1423abc43,scroll,22);
+    // hooks::GM_HOOK!(0x141f98f6b,bitTest,17);
  //   hooks::GM_HOOK!(0x141f9a160,beastCheck2,27);
     0
 }
