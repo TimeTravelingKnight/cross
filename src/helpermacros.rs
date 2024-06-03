@@ -54,6 +54,10 @@ macro_rules! write_u32{
   ($ram:ident,$offset:ident,$value:literal) => {
     unsafe {*($ram.wrapping_add($offset as usize) as *mut u32) =$value};
   }; 
+  ($ram:ident,$offset:ident,$value:ident,$gamever:ident) => {
+    unsafe {*($ram.wrapping_add($offset as usize) as *mut u32) =($value[$gamever as usize] as u32)};
+  };
+
 
 }
 

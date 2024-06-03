@@ -1,6 +1,6 @@
-use std::{sync::Mutex, thread,slice};
+use std::{slice, sync::Mutex, thread::{self, spawn}};
 
-use crate::{bnfunctions::bn6fun, gamever, helpermacros::{grab_u32, memcopy, write_u32, MutexValue}, GBASTRUCT::gba};
+use crate::{bnfunctions::bn6fun, gamever, helpermacros::{grab_u32, memcopy, write_u32, MutexValue}, GBASTRUCT::{self, gba}};
 
 
 
@@ -17,53 +17,83 @@ fn WhichVersion(currForm:u8)->usize {
   }
   1
 }
-pub fn setDefaultFace(){
-  let regs=&gba.get().unwrap().registers;
-  let gameversion=MutexValue!(gamever) as usize;
+pub fn setDefaultFalzarFace(){
+  let regs=&gba.get_or_init(|| GBASTRUCT::init()).registers;
+ 
   let gbamemorymap= unsafe{*(((  *bn6fun::GLOBALGBAREG.get().unwrap() as u64)+0x48) as *const u64)} as *const u8;
   let r1=regs[1] as *mut u32;
   let currMegman=grab_u32!(r1,0);
   let ver=WhichVersion(currMegman as u8);
-  let offset=labels_LOC_OFFSET[gameversion];
-  let value=thread::spawn(move || {
-   let mut data=EMOTIONPOINTERS.lock().unwrap();
-   data[ver]
- } ).join().unwrap();
+  let offset=labels_LOC_OFFSET[1];
+  let value=EMOTIONPOINTERS.lock().unwrap()[ver];
+ 
   write_u32!(gbamemorymap,offset,value);
- let offset=labels_LOC_OFFSETPAL[gameversion];
- let value =thread::spawn(move || {
-   let mut data=PalettePointers.lock().unwrap();
-   data[ver]
- } ).join().unwrap();
+ let offset=labels_LOC_OFFSETPAL[1];
+ let value =PalettePointers.lock().unwrap()[ver];
  write_u32!(gbamemorymap,offset,value);
  
  
  unsafe{*(regs[4] as *mut u32)=currMegman;}
 
 }
-pub fn setVersionFace(){
-  let gameversion=MutexValue!(gamever) as usize;
-  let regs=&gba.get().unwrap().registers;
+pub fn setDefaultGregarFace(){
+  let regs=&gba.get_or_init(|| GBASTRUCT::init()).registers;
+ 
+  let gbamemorymap= unsafe{*(((  *bn6fun::GLOBALGBAREG.get().unwrap() as u64)+0x48) as *const u64)} as *const u8;
+  let r1=regs[1] as *mut u32;
+  let currMegman=grab_u32!(r1,0);
+  let ver=WhichVersion(currMegman as u8);
+  let offset=labels_LOC_OFFSET[0];
+  let value=EMOTIONPOINTERS.lock().unwrap()[ver];
+ 
+  write_u32!(gbamemorymap,offset,value);
+ let offset=labels_LOC_OFFSETPAL[0];
+ let value =PalettePointers.lock().unwrap()[ver];
+ write_u32!(gbamemorymap,offset,value);
+ 
+ 
+ unsafe{*(regs[4] as *mut u32)=currMegman;}
+
+}
+pub fn setVersionFaceGregar(){
+  
+  //let gameversion=gamever.lock().unwrap();
+  let regs=&gba.get_or_init(|| GBASTRUCT::init()).registers;
   let gbamemorymap= unsafe{*(((  *bn6fun::GLOBALGBAREG.get().unwrap() as u64)+0x48) as *const u64)} as *const u8;
   let r0=regs[0] as *mut u32;
   let currMegman=grab_u32!(r0,0);
   let ver=WhichVersion(currMegman as u8);
-  let offset=labels_LOC_OFFSET[gameversion];
- let value=thread::spawn(move || {
-  let mut data=EMOTIONPOINTERS.lock().unwrap();
-  data[ver]
-} ).join().unwrap();
- write_u32!(gbamemorymap,offset,value);
- let offset=labels_LOC_OFFSETPAL[gameversion];
-let value =thread::spawn(move || {
-  let mut data=PalettePointers.lock().unwrap();
-  data[ver]
-} ).join().unwrap();
-write_u32!(gbamemorymap,offset,value);
+  let offset=labels_LOC_OFFSET[0]; //*gameversion as usize];
+ let value=EMOTIONPOINTERS.lock().unwrap();
+ write_u32!(gbamemorymap,offset,value,ver);
+ let offset=labels_LOC_OFFSETPAL[0];//*gameversion as usize];
+let value =PalettePointers.lock().unwrap();
+write_u32!(gbamemorymap,offset,value,ver);
 
 
  unsafe{*(regs[4] as *mut u32)=currMegman;}
+  
 }
+pub fn setVersionFaceFalzar(){
+  
+  //let gameversion=gamever.lock().unwrap();
+  let regs=&gba.get_or_init(|| GBASTRUCT::init()).registers;
+  let gbamemorymap= unsafe{*(((  *bn6fun::GLOBALGBAREG.get().unwrap() as u64)+0x48) as *const u64)} as *const u8;
+  let r0=regs[0] as *mut u32;
+  let currMegman=grab_u32!(r0,0);
+  let ver=WhichVersion(currMegman as u8);
+  let offset=labels_LOC_OFFSET[1]; //*gameversion as usize];
+ let value=EMOTIONPOINTERS.lock().unwrap();
+ write_u32!(gbamemorymap,offset,value,ver);
+ let offset=labels_LOC_OFFSETPAL[1];//*gameversion as usize];
+let value =PalettePointers.lock().unwrap();
+write_u32!(gbamemorymap,offset,value,ver);
+
+
+ unsafe{*(regs[4] as *mut u32)=currMegman;}
+  
+}
+
 
 
 pub fn writeNewPointer(version:u8,curraddress:u64, rom:Vec<u8>)->u64 {

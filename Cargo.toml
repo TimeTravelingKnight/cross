@@ -8,5 +8,10 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib"]
 
+
+
 [dependencies]
 zip = "0.6"
+
+[profile.release]
+debug = true

@@ -1,8 +1,9 @@
 #![feature(lazy_cell)]
+use std::borrow::BorrowMut;
 use std::ffi::{c_float, c_int, c_void, OsStr};
 
 use std::io::Read;
-use emotionfacesloader::emotions::{setDefaultFace, setVersionFace, writeNewPointer};
+use emotionfacesloader::emotions::{setDefaultFalzarFace, setDefaultGregarFace, setVersionFaceFalzar, setVersionFaceGregar, writeNewPointer};
 use zip::ZipArchive;
 use GBASTRUCT::gba;
 use std::fs::File;
@@ -37,17 +38,40 @@ const pixely0ForSelected:[usize;5]=[0x15e,0x1a4, 0x1ea,0x230, 0x15e];
 const pixelx0ForSelected:[usize;5]=[0,0,0,0,0x14a];
 const CrossMax:u8=10;
 
-
-fn winDowCurrCount(game:u8)->u8 {
+const windowCount:[fn()->u8;2]=[winDowCurrCount,winDowCurrCountfalzar];
+fn winDowCurrCountfalzar()->u8 {
+   
     let gbamemorymap= unsafe{*(((  *bn6fun::GLOBALGBAREG.get().unwrap() as u64)+0x48) as *const u64)} as *mut u8;
     let mut differentwindowcount=0;
     let mut newCount=0;
-    let crossTest=unsafe{* ((gbamemorymap as u64 + testingCrosses[game as usize] as u64) as *mut u32)}  ;
+    let crossTest=unsafe{* ((gbamemorymap as u64 + testingCrosses[1] as u64) as *mut u32)}  ;
     let crossTest = unsafe{* ((gbamemorymap.wrapping_add(crossTest as usize)) as *mut u32)};
      while newCount<CrossMax {
         if !testingCross(crossTest, newCount)
         {
-           if !testForExtremeTired(newCount) {
+           if !funcfortired[1](newCount) {
+               
+               differentwindowcount+=1;
+               
+           }
+        }
+        newCount += 1;
+    }
+    differentwindowcount  
+}
+
+
+fn winDowCurrCount()->u8 {
+   
+    let gbamemorymap= unsafe{*(((  *bn6fun::GLOBALGBAREG.get().unwrap() as u64)+0x48) as *const u64)} as *mut u8;
+    let mut differentwindowcount=0;
+    let mut newCount=0;
+    let crossTest=unsafe{* ((gbamemorymap as u64 + testingCrosses[0] as u64) as *mut u32)}  ;
+    let crossTest = unsafe{* ((gbamemorymap.wrapping_add(crossTest as usize)) as *mut u32)};
+     while newCount<CrossMax {
+        if !testingCross(crossTest, newCount)
+        {
+           if !funcfortired[0](newCount) {
                
                differentwindowcount+=1;
                
@@ -58,7 +82,7 @@ fn winDowCurrCount(game:u8)->u8 {
     differentwindowcount  
 }
 fn initForFirstWindow() {
-    let regs=&gba.get().unwrap().registers;
+    let regs=&GBASTRUCT::gba.get_or_init(|| GBASTRUCT::init()).registers;
     let gbamemorymap= unsafe{*(((  *bn6fun::GLOBALGBAREG.get().unwrap() as u64)+0x48) as *const u64)} as *mut u8;
     let megaman=unsafe{ *(regs[5] as *mut u32) };
     unsafe{*(gbamemorymap as *mut u8).wrapping_add( (megaman+0x1B) as usize)=2;}
@@ -69,32 +93,77 @@ fn initForFirstWindow() {
         
 
 }
-fn goSignedDirectionForCross(sign :i8,game:u8) {
+const signed:[fn(i8);2]=[goSignedDirectionForCross,goSignedDirectionForCrossFalzar];
+fn goSignedDirectionForCrossFalzar(sign :i8) {
     let regs=&gba.get().unwrap().registers;
     let gbamemorymap= unsafe{*(((  *bn6fun::GLOBALGBAREG.get().unwrap() as u64)+0x48) as *const u64)} as *mut u8;
     let megaman=unsafe{ *(regs[5] as *mut u32) };
     let crossindexes= (gbamemorymap as *mut u8).wrapping_add(megaman as usize+0x50);
-    let mut windowCount=0;
+    let mut window_count=0;
     let mut currCount= unsafe{*(crossindexes.wrapping_add(2))};
-    let crossTest=unsafe{* ((gbamemorymap as u64 + testingCrosses[game as usize] as u64) as *mut u32)}  ;
+    let crossTest=unsafe{* ((gbamemorymap as u64 + testingCrosses[1 as usize] as u64) as *mut u32)}  ;
   
     let crossTest = unsafe{* ((gbamemorymap.wrapping_add(crossTest as usize)) as *mut u32)};
-    let mut crossindex=windowCount;
-    while windowCount<3{
+    let mut crossindex=window_count;
+    while window_count<3{
         if !testingCross(crossTest, currCount)
         {
-           if !testForExtremeTired(currCount) {
+           if !funcfortired[1](currCount) {
             if sign >0  {
-                crossindex=2+windowCount;
+                crossindex=2+window_count;
             }
             else {
-                crossindex =2-windowCount;
+                crossindex =2-window_count;
             }
            
               unsafe{*(crossindexes.wrapping_add(crossindex))=currCount;}
               
             
-               windowCount+=1;
+               window_count+=1;
+           }
+        }
+           if (sign>0){
+           currCount = (currCount +1)%10 ;
+           }
+           else {
+            if currCount!=0 {
+            currCount = currCount -1;
+            }
+            else {
+                currCount=9;
+            }
+           }
+       
+
+}
+}
+
+fn goSignedDirectionForCross(sign :i8) {
+    let regs=&gba.get().unwrap().registers;
+    let gbamemorymap= unsafe{*(((  *bn6fun::GLOBALGBAREG.get().unwrap() as u64)+0x48) as *const u64)} as *mut u8;
+    let megaman=unsafe{ *(regs[5] as *mut u32) };
+    let crossindexes= (gbamemorymap as *mut u8).wrapping_add(megaman as usize+0x50);
+    let mut window_count=0;
+    let mut currCount= unsafe{*(crossindexes.wrapping_add(2))};
+    let crossTest=unsafe{* ((gbamemorymap as u64 + testingCrosses[0] as u64) as *mut u32)}  ;
+  
+    let crossTest = unsafe{* ((gbamemorymap.wrapping_add(crossTest as usize)) as *mut u32)};
+    let mut crossindex=window_count;
+    while window_count<3{
+        if !testingCross(crossTest, currCount)
+        {
+           if !funcfortired[0](currCount) {
+            if sign >0  {
+                crossindex=2+window_count;
+            }
+            else {
+                crossindex =2-window_count;
+            }
+           
+              unsafe{*(crossindexes.wrapping_add(crossindex))=currCount;}
+              
+            
+               window_count+=1;
            }
         }
            if (sign>0){
@@ -119,7 +188,7 @@ fn scroll() {
     let gbamemorymap= unsafe{*(((  *bn6fun::GLOBALGBAREG.get().unwrap() as u64)+0x48) as *const u64)} as *mut u8;
     let game=gamever.lock().unwrap();
         let choice= unsafe{*(regs[4] as *mut u32)} as u8; 
-    if winDowCurrCount(*game as u8)>5 {
+    if winDowCurrCount()>5 {
         let regs=&gba.get().unwrap().registers;
         let gbamemorymap= unsafe{*(((  *bn6fun::GLOBALGBAREG.get().unwrap() as u64)+0x48) as *const u64)} as *mut u8;
         let megaman=unsafe{ *(regs[5] as *mut u32) };
@@ -128,8 +197,8 @@ fn scroll() {
       
        
         write_u8!(crossindexes,2,nextCross);
-        goSignedDirectionForCross(-1,*game as u8);
-        goSignedDirectionForCross(1,*game as u8);
+        signed[*game as usize](-1);
+        signed[*game as usize](1);
 
     }
     
@@ -188,65 +257,105 @@ fn testForExtremeTired(currCount:u8)->bool {
      
     val==(currCount+1)
 }
-fn testForExtremeTiredVersion(currCount:u8,version:u32)->bool {
-    if version==0 {
-    return testForExtremeTired(currCount);
-    }
-    testForExtremeTiredFalzar(currCount)
-}
+
 const testingCrosses:[u64;2]=[0x46e64, 0x46574];
+const funcfortired:[fn(u8)->bool;2]=[testForExtremeTired,testForExtremeTiredFalzar];
 fn CrossWindowAddCross(gbareg:*mut u64)->c_int{
     let oldr14 =unsafe{ *((gbareg as *mut u32).wrapping_add(14))};
     let crossCount=10 as u8;
     let mut currCount=0;
-    let mut windowCount =0;
+    let mut window_count =0;
     let maxCount=5;
-    let game=gamever.lock().unwrap();
+  
     let gbamemorymap= unsafe{*(((  *bn6fun::GLOBALGBAREG.get().unwrap() as u64)+0x48) as *const u64)};
-    let crossTest=unsafe{* ((gbamemorymap + testingCrosses[*game as usize]) as *mut u32)}  ;
+    //let game=gamever.lock().unwrap(); 
+    let crossTest=unsafe{* ((gbamemorymap + testingCrosses[0]) as *mut u32)}  ;
     let crossTest = unsafe{* ((gbamemorymap+ (crossTest as u64)) as *mut u32)};
-    let regs=&gba.get().unwrap().registers;
+    let regs=&GBASTRUCT::gba.get_or_init(|| GBASTRUCT::init()).registers;
    
-    while currCount<crossCount && windowCount<maxCount {
+
+    while currCount<crossCount && window_count<maxCount {
         if !testingCross(crossTest, currCount)
         {
-           if !testForExtremeTiredVersion(currCount,*game) {
-               let crossindex=0x50+windowCount;
+           
+           if !funcfortired[0](currCount) {
+               let crossindex=0x50+window_count;
                
                let megaman=unsafe{ *(regs[5] as *mut u32) };
               unsafe{*(gbamemorymap as *mut u8).wrapping_add( (megaman+crossindex) as usize)=currCount;}
-              let crossSelected: u32=0x55+windowCount as u32; //will need to change this later
+              let crossSelected: u32=0x55+window_count as u32; //will need to change this later
               unsafe{ *(gbamemorymap as *mut u8).wrapping_add((megaman+crossSelected ) as usize )=0;}
-               windowCount+=1;
+               window_count+=1;
            }
         }
         currCount += 1;
     }    
    
    
-    if  winDowCurrCount( *game as u8)>5 {
+    if  windowCount[0]()>5 {
         
-        initForFirstWindow();
-        goSignedDirectionForCross(-1,*game as u8);
-        goSignedDirectionForCross(1,*game as u8);
+       initForFirstWindow();
+       signed[0](-1);
+       signed[0](1);
     }
-    unsafe { * (regs[0] as *mut u32) =windowCount;}
+    unsafe { * (regs[0] as *mut u32) =window_count;}
     oldr14 as c_int
     
 }
 
+fn CrossWindowAddCrossFalzar(gbareg:*mut u64)->c_int{
+    let oldr14 =unsafe{ *((gbareg as *mut u32).wrapping_add(14))};
+    let crossCount=10 as u8;
+    let mut currCount=0;
+    let mut window_count =0;
+    let maxCount=5;
+  
+    let gbamemorymap= unsafe{*(((  *bn6fun::GLOBALGBAREG.get().unwrap() as u64)+0x48) as *const u64)};
+    //let game=gamever.lock().unwrap(); 
+    let crossTest=unsafe{* ((gbamemorymap + testingCrosses[1]) as *mut u32)}  ;
+    let crossTest = unsafe{* ((gbamemorymap+ (crossTest as u64)) as *mut u32)};
+    let regs=&GBASTRUCT::gba.get_or_init(|| GBASTRUCT::init()).registers;
+   
+
+    while currCount<crossCount && window_count<maxCount {
+        if !testingCross(crossTest, currCount)
+        {
+           
+           if !funcfortired[1](currCount) {
+               let crossindex=0x50+window_count;
+               
+               let megaman=unsafe{ *(regs[5] as *mut u32) };
+              unsafe{*(gbamemorymap as *mut u8).wrapping_add( (megaman+crossindex) as usize)=currCount;}
+              let crossSelected: u32=0x55+window_count as u32; //will need to change this later
+              unsafe{ *(gbamemorymap as *mut u8).wrapping_add((megaman+crossSelected ) as usize )=0;}
+               window_count+=1;
+           }
+        }
+        currCount += 1;
+    }    
+   
+   
+    if  windowCount[0]()>5 {
+        
+       initForFirstWindow();
+       signed[1](-1);
+       signed[1](1);
+    }
+    unsafe { * (regs[0] as *mut u32) =window_count;}
+    oldr14 as c_int
+    
+}
+
+
 const listOfCrosses:[usize;2]=[0x143d34a90 ,0x143d35cc0];
 
 
-fn aftersetCross(){
+fn aftersetCrossGregar(){
+
    
 
-    let mut count= unsafe{  let game=gamever.lock().unwrap();
-                                *(addrOfNumcrosses[*game as usize] as *mut u8) };
-    let mut structOfCrossFaces:*const u32 ={ let game=gamever.lock().unwrap();
-                                            listOfCrosses[*game as usize] as *const u32
-    
-                                            };
+    let mut count= unsafe{  *(addrOfNumcrosses[0] as *mut u8) };
+    let mut structOfCrossFaces:*const u32 =listOfCrosses[0] as *const u32;
     while (count >0) {
         {  
             unsafe {
@@ -254,25 +363,79 @@ fn aftersetCross(){
             let indextoDraw = *structOfCrossFaces.wrapping_add(1) as u8;
             let currCrossSelected = *structOfCrossFaces.wrapping_add(2) as u8;
             let selected = *structOfCrossFaces.wrapping_add(3) as u8;
-            setCrosses(crosstoDraw, indextoDraw, currCrossSelected, selected, 1)
+            setCrosses(crosstoDraw, indextoDraw, currCrossSelected, selected, 0)
             }
         }
 
         count-=1;
         structOfCrossFaces=structOfCrossFaces.wrapping_add(4);
     }
+    unsafe{ 
+        let pointertoregs=*bn6fun::GLOBALGBAREG.get().unwrap() as *mut u32;
+        *pointertoregs=8;
+        *(0x143b3d431 as *mut u8)=0;
     }
 
-    
+}
+
+fn aftersetCrossFalzar(){
+
+    let mut count= unsafe{  *(addrOfNumcrosses[1] as *mut u8) };
+    let mut structOfCrossFaces:*const u32 =listOfCrosses[1] as *const u32;
+    while (count >0) {
+        {  
+            unsafe {
+            let crosstoDraw=*structOfCrossFaces as u8;
+            let indextoDraw = *structOfCrossFaces.wrapping_add(1) as u8;
+            let currCrossSelected = *structOfCrossFaces.wrapping_add(2) as u8;
+            let selected = *structOfCrossFaces.wrapping_add(3) as u8;
+            setCrosses(crosstoDraw, indextoDraw, currCrossSelected, selected, 0)
+            }
+        }
+
+        count-=1;
+        structOfCrossFaces=structOfCrossFaces.wrapping_add(4);
+    }
+    unsafe{ 
+        let pointertoregs=*bn6fun::GLOBALGBAREG.get().unwrap() as *mut u32;
+        *pointertoregs=8;
+        *(0x143b3d557 as *mut u8)=0;
+    }
+
+}
 
 
 const facesinram:[u64;2]= [0x143d33bc0,0x143d35040];
 
 
+fn gregarsetCross(notusefuldata:u64,indextoDraw:u8){
+    let mut structOfCrossFaces:*const u32=listOfCrosses[0] as *const u32;
+    structOfCrossFaces=structOfCrossFaces.wrapping_add((indextoDraw<<2) as usize);
+    unsafe {
+        
+    setCrosses(*structOfCrossFaces as u8, *structOfCrossFaces.wrapping_add(1) as u8, *structOfCrossFaces.wrapping_add(2) as u8, *structOfCrossFaces.wrapping_add(3) as u8,1);
+    let update= (((  *bn6fun::GLOBALGBAREG.get().unwrap() as u64)+0x34) as *mut u32);
+    *update=*update-4;
 
+    }
+        
+}
+
+fn falzarsetCross(notusefuldata:u64,indextoDraw:u8){
+    let mut structOfCrossFaces:*const u32=listOfCrosses[1] as *const u32;
+    structOfCrossFaces=structOfCrossFaces.wrapping_add((indextoDraw<<2) as usize);
+    unsafe {
+        
+    setCrosses(*structOfCrossFaces as u8, *structOfCrossFaces.wrapping_add(1) as u8, *structOfCrossFaces.wrapping_add(2) as u8, *structOfCrossFaces.wrapping_add(3) as u8,1);
+    let update= (((  *bn6fun::GLOBALGBAREG.get().unwrap() as u64)+0x34) as *mut u32);
+    *update=*update-4;
+
+    }
+        
+}
 
 fn setCrosses(crosstoDraw:u8,indextoDraw:u8,currCrossSelected:u8,selected:u8, amountToDraw:u8) {
-    let gameversion=gamever.lock().unwrap();
+   let gameversion=gamever.lock().unwrap();
     let mut y0=pixelyo[(crosstoDraw%5) as usize];
     let mut x0=0x14a;
     if indextoDraw==currCrossSelected {
@@ -518,30 +681,22 @@ const beastchipIconVer:[u32;2]=[0x40950,0x40238];
 const beastchipicon2Ver:[u32;2]=[0x46810,0x45F20];
 const beastSoundVer:[u32;2]=[0x46ec0,0x465D0];
 fn customscreen_effects() {
-   let gbareg= &GBASTRUCT::gba.get().unwrap().registers;
+   let gbareg= &GBASTRUCT::gba.get_or_init(|| GBASTRUCT::init()).registers;
    let pointertoregs: *mut u64=*bn6fun::GLOBALGBAREG.get().unwrap() as *mut u64;
-   let curvalue= thread::spawn(move || {
-           
-    let mut data = BEAST.lock().unwrap();
-    *data
-    
-    }).join(); 
-   let gameversion=MutexValue!(gamever) as usize;
- if curvalue.unwrap()==1 {
-    _=thread::spawn(move || {
-           
-        let mut data = BEAST.lock().unwrap();
-        *data=0
-        
-        }).join(); 
+ {
+   let mut curvalue= BEAST.lock().unwrap();
+  
+ if *curvalue==1 {
+    let gameversion=gamever.lock().unwrap();
+         *curvalue=0;   
         let ram=unsafe{*( (gbareg[0] as *mut u32).wrapping_add(0x48>>2) as *mut u64)} as *mut u8;
-        let mut beastoffset=beastoffsetver[gameversion];
-        let beasticonInLabels=beasticonInLabelsVer[gameversion]>>2;
-        let beasticonInLabels2 =beasticonInLabels2Ver[gameversion]>>2;
-        let beastchipicon =beastchipIconVer[gameversion]>>2;
-        let beastchipicon2 = beastchipicon2Ver[gameversion]>>2;
+        let mut beastoffset=beastoffsetver[*gameversion as usize];
+        let beasticonInLabels=beasticonInLabelsVer[*gameversion as usize]>>2;
+        let beasticonInLabels2 =beasticonInLabels2Ver[*gameversion as usize]>>2;
+        let beastchipicon =beastchipIconVer[*gameversion as usize]>>2;
+        let beastchipicon2 = beastchipicon2Ver[*gameversion as usize]>>2;
         let currbeast=read_u8!(ram,beastoffset);
-        let beastOthervar=beastSoundVer[gameversion];
+        let beastOthervar=beastSoundVer[*gameversion as usize];
         let mut sound=0x92;
         if (currbeast==0xB) {
             write_u8!(ram,beastoffset,0xC);
@@ -596,7 +751,7 @@ fn customscreen_effects() {
         unsafe{*(0x141f976aA as *mut u8)=sound; }
         unsafe{ *(0x142985ddA as *mut u8 )=sound;}
         unsafe{*(gbareg[0] as *mut u32)=(sound as u32)+0xFF};
-        soundRequest[gameversion](pointertoregs);
+        soundRequest[*gameversion as usize](pointertoregs);
         
  }
 
@@ -611,21 +766,23 @@ fn customscreen_effects() {
     *((gbareg[0]) as *mut u32)=crossbyte as u32;   
     }
     {
-   
-    custom_cross_kokoro_change_set[ gameversion]( pointertoregs);
-    custom_custom_move_cross_select_sub2[ gameversion](pointertoregs);
-    custom_move_cross_select_sub[ gameversion](pointertoregs);
-    custom_paint_datawindow[ gameversion](pointertoregs);
+        
+    custom_cross_kokoro_change_set[ {*gamever.lock().unwrap()} as usize]( pointertoregs);
+    custom_custom_move_cross_select_sub2[ {*gamever.lock().unwrap()} as usize](pointertoregs);
+    custom_move_cross_select_sub[ {*gamever.lock().unwrap()} as usize](pointertoregs);
+    custom_paint_datawindow[ {*gamever.lock().unwrap()} as usize](pointertoregs);
     }
     unsafe {
         *((gbareg[0]) as *mut u32)=0x92;   
         }
-    soundRequest[gameversion](pointertoregs);
+    soundRequest[{*gamever.lock().unwrap()} as usize](pointertoregs);
     }
+}
 }
 
 fn beastCheck() ->c_int {
-    let gbareg= &GBASTRUCT::gba.get().unwrap().registers;
+    let gbareg=    &GBASTRUCT::gba.get_or_init(|| GBASTRUCT::init()).registers;
+
     let pointertoregs: *mut u64=*bn6fun::GLOBALGBAREG.get().unwrap() as *mut u64;
     let currentChip= unsafe {
         *((gbareg[0]) as *mut u32) as u8  
@@ -665,38 +822,31 @@ pub extern "C" fn luaopen_make(_:c_void)-> c_int{
     hooks::GM_HOOK!(0x1428e19de,falzarcontinue,14);
 
     hooks::GM_HOOK!(0x141f9a1ab,customscreen_effects,14);
-    hooks::GM_HOOK!(0x1429887ab,customscreen_effects,14);
+  hooks::GM_HOOK!(0x1429887ab,customscreen_effects,14);
     unsafe {
       *(0x141F9A1B9 as *mut u8)=0xEB;
-      *(0x141F9A1BA as *mut u8)=0x7B;
+     *(0x141F9A1BA as *mut u8)=0x7B;
       *( 0x1429887B9 as *mut u8)=0xEB;
       *( 0x1429887BA as *mut u8)=0x7B;
 
                            //jump
-    }
+  }
      hooks::GM_HOOK!(0x1423ac324,beastCheck,15);   
      hooks::GM_HOOK!(0x142d36f04,beastCheck,15);
 
-     hooks::GM_HOOK!(0x141f8c960,setCrosses,16 );
-     hooks::GM_HOOK!(0x14297b910,setCrosses,16);
-      unsafe{
-     *(0x141f8c96f as *mut u8)  = 0xC3;      
-     *(0x14297b91f as *mut u8 )=0xC3; 
- 
-    }
-     hooks::GM_HOOK!(0x141f8cbc0,aftersetCross,15);
-     hooks::GM_HOOK!(0x14297bb70,aftersetCross,15);
-     unsafe{
-        *(0x141f8cbcf as *mut u8)  = 0xC3;       
-       *( 0x14297bb7f as *mut u8 ) =0xC3;
+
+    hooks::GM_HOOK!( 0x141f991e8,gregarsetCross,15 );//0x141f8c960,
+     hooks::GM_HOOK!(0x142987918,falzarsetCross,15);
+     
+     hooks::GM_HOOK!(0x141f99ff3,aftersetCrossGregar,25);  //0x141f8cbc0
+    hooks::GM_HOOK!(0x1429885f3,aftersetCrossFalzar,25);
     
-   }
    //load headcross palette
     unsafe {
 
         *(0x1423bd077 as *mut u8)=0x0;
         
-        *(0x142d45697 as *mut u8)=0x0;
+       *(0x142d45697 as *mut u8)=0x0;
 
         *(0x1423bcd13 as *mut u8)=0xBA;
         *(0x1423bcd14 as *mut u8)=0x0;
@@ -710,24 +860,24 @@ pub extern "C" fn luaopen_make(_:c_void)-> c_int{
         *(0x142d45335 as *mut u8)=0x0;
         *(0x142d45336 as *mut u8)=0x0;
         *(0x142d45337 as *mut u8)=0x0;
-        *(0x142d45338 as *mut u8)=0x90;
+       *(0x142d45338 as *mut u8)=0x90;
 
 
 
     }
     hooks::GM_HOOK!(0x1423bd7d0,CrossWindowAddCross,13);
-    hooks::GM_HOOK!(0x142d45e30,CrossWindowAddCross,13);
+    hooks::GM_HOOK!(0x142d45e30,CrossWindowAddCrossFalzar,13);
     unsafe
-     {
+    {
         *(0x1423bd7dd as *mut u8)  = 0xC3;   
         *(0x142d45e3d as *mut u8 )=0xC3;
      }
-     hooks::GM_HOOK!(0x1423abc43,scroll,22);
-     hooks::GM_HOOK!(0x142d36813,scroll,22);
-     hooks::GM_HOOK!(0x14245cf66,setVersionFace,21);
-     hooks::GM_HOOK!(0x142dd0d76 ,setVersionFace,21);
-     hooks::GM_HOOK!(0x14245d484,setDefaultFace,17);
-     hooks::GM_HOOK!(0x142dd1294,setDefaultFace,17);
+   hooks::GM_HOOK!(0x1423abc43,scroll,22);
+   hooks::GM_HOOK!(0x142d36813,scroll,22);
+   hooks::GM_HOOK!(0x14245cf66,setVersionFaceGregar,21);
+   hooks::GM_HOOK!(0x142dd0d76 ,setVersionFaceFalzar,21);
+   hooks::GM_HOOK!(0x14245d484,setDefaultGregarFace,17);
+   hooks::GM_HOOK!(0x142dd1294,setDefaultFalzarFace,17);
      
      unsafe{*(0x142d3d24A as *mut u8)=1;}
     0
