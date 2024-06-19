@@ -188,7 +188,7 @@ fn scroll() {
     let gbamemorymap= unsafe{*(((  *bn6fun::GLOBALGBAREG.get().unwrap() as u64)+0x48) as *const u64)} as *mut u8;
     let game=gamever.lock().unwrap();
         let choice= unsafe{*(regs[4] as *mut u32)} as u8; 
-    if winDowCurrCount()>5 {
+    if windowCount[*game as usize]()>5 {
         let regs=&gba.get().unwrap().registers;
         let gbamemorymap= unsafe{*(((  *bn6fun::GLOBALGBAREG.get().unwrap() as u64)+0x48) as *const u64)} as *mut u8;
         let megaman=unsafe{ *(regs[5] as *mut u32) };
@@ -335,7 +335,7 @@ fn CrossWindowAddCrossFalzar(gbareg:*mut u64)->c_int{
     }    
    
    
-    if  windowCount[0]()>5 {
+    if  windowCount[1]()>5 {
         
        initForFirstWindow();
        signed[1](-1);
