@@ -5,6 +5,7 @@ use std::ffi::{c_float, c_int, c_void, OsStr};
 use std::io::Read;
 use emotionfacesloader::emotions::{setDefaultFalzarFace, setDefaultGregarFace, setVersionFaceFalzar, setVersionFaceGregar, writeNewPointer};
 use zip::ZipArchive;
+use CrossWindow::detourCrossWindow::install_hooks_cross_check;
 use GBASTRUCT::gba;
 use std::fs::File;
 use std::{slice, thread};
@@ -14,6 +15,7 @@ mod helpermacros;
 mod bnfunctions;
 mod GBASTRUCT;
 mod emotionfacesloader;
+mod CrossWindow;
 use bnfunctions::bn6fun::{self, chip_address, custom_cross_kokoro_change_set, custom_custom_move_cross_select_sub2, custom_move_cross_select_sub, custom_paint_datawindow, drawCrossFaces, getNaviStatus4, getNaviStatus4Falzar, soundRequest, GLOBALGBAREG};
 use helpermacros::{memcopy, read_u8, write_u32, write_u8, MutexValue};
 use hook_module::hooks;
@@ -813,7 +815,7 @@ fn beastCheck() ->c_int {
 }
 
 #[no_mangle]
-pub extern "C" fn luaopen_make(_:c_void)-> c_int{
+pub  extern "C" fn luaopen_make(_:c_void)-> c_int{
 
     hooks::GM_HOOK!(0x141edebcb,gregarnewgame,16);
     hooks::GM_HOOK!(0x1428e191b,falzarnewgame,16);
@@ -822,7 +824,7 @@ pub extern "C" fn luaopen_make(_:c_void)-> c_int{
     hooks::GM_HOOK!(0x1428e19de,falzarcontinue,14);
 
     hooks::GM_HOOK!(0x141f9a1ab,customscreen_effects,14);
-  hooks::GM_HOOK!(0x1429887ab,customscreen_effects,14);
+    hooks::GM_HOOK!(0x1429887ab,customscreen_effects,14);
     unsafe {
       *(0x141F9A1B9 as *mut u8)=0xEB;
      *(0x141F9A1BA as *mut u8)=0x7B;
@@ -865,13 +867,14 @@ pub extern "C" fn luaopen_make(_:c_void)-> c_int{
 
 
     }
-    hooks::GM_HOOK!(0x1423bd7d0,CrossWindowAddCross,13);
-    hooks::GM_HOOK!(0x142d45e30,CrossWindowAddCrossFalzar,13);
-    unsafe
-    {
-        *(0x1423bd7dd as *mut u8)  = 0xC3;   
-        *(0x142d45e3d as *mut u8 )=0xC3;
-     }
+    install_hooks_cross_check();
+    //hooks::GM_HOOK!(0x1423bd7d0,CrossWindowAddCross,13);
+    //hooks::GM_HOOK!(0x142d45e30,CrossWindowAddCrossFalzar,13);
+    //unsafe
+   // {
+       // *(0x1423bd7dd as *mut u8)  = 0xC3;   
+     //   *(0x142d45e3d as *mut u8 )=0xC3;
+   //  }
    hooks::GM_HOOK!(0x1423abc43,scroll,22);
    hooks::GM_HOOK!(0x142d36813,scroll,22);
    hooks::GM_HOOK!(0x14245cf66,setVersionFaceGregar,21);

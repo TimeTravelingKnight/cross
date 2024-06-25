@@ -42,6 +42,7 @@ Ver_BN_FUNCTION!(custom_custom_move_cross_select_sub2,0x46288,0x45998);
 Ver_BN_FUNCTION!( custom_move_cross_select_sub,0x46278,0x45988);
 Ver_BN_FUNCTION!(custom_paint_datawindow,0x46758,0x45e68);
 Ver_BN_FUNCTION!(chip_address,0x464e8,0x45bf8);
+Ver_BN_FUNCTION!(crossCheckInit,0x46e38, 0x46548);
 BN_FUNCTION!(getNaviStatus4 ,0x75638);
 BN_FUNCTION!(getNaviStatus4Falzar,0x75360);
 //BN_FUNCTION!(getNaviStatus4,  
